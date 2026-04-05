@@ -307,7 +307,6 @@ function enterNum(n){
   const k=`${r}_${c}`;S.grid[r][c]=n;
   if(n!==S.solution[r][c]){
     S.errors.add(k);snd.wrong();
-    const g=$('sudoku-grid');g.classList.remove('shake');void g.offsetWidth;g.classList.add('shake');
   }else{S.errors.delete(k);checkDone()}
   renderGrid();
 }
