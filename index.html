@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ナンプレ">
+<title>ナンプレ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Hiragino Sans',sans-serif;background:linear-gradient(160deg,#e8f0fe,#d0e8ff);min-height:100dvh;overflow-x:hidden}
+
+.screen{display:none;min-height:100dvh}
+.screen.active{display:block}
+
+/* ホーム */
+.home-inner{max-width:480px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:20px}
+.title-area{text-align:center;padding-top:8px}
+.title-emoji{font-size:64px;line-height:1.2}
+.title{font-size:36px;font-weight:800;color:#2d3a8c;letter-spacing:2px}
+.subtitle{font-size:16px;color:#888;margin-top:4px}
+.rules-card{background:rgba(255,255,255,.85);border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.rules-title{font-size:15px;font-weight:700;color:#2d3a8c;margin-bottom:10px}
+.rule-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;margin-bottom:8px;line-height:1.5;color:#333}
+.rule-icon{font-size:18px;flex-shrink:0}
+.level-list{display:flex;flex-direction:column;gap:12px}
+.level-card{background:white;border-radius:20px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;cursor:pointer;border:none;width:100%;text-align:left;transition:transform .1s}
+.level-card:active{transform:scale(.98)}
+.level-card.locked{opacity:.6;cursor:default}
+.level-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.level-info{flex:1;min-width:0}
+.level-name{font-size:18px;font-weight:700;color:#222}
+.level-grid{font-size:13px;color:#888;margin-top:2px}
+.level-stars{font-size:12px;margin-top:3px}
+.prog-bg{height:7px;background:#eee;border-radius:4px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:4px;transition:width .4s}
+.prog-text{font-size:11px;color:#999;margin-top:3px}
+.lock-text{font-size:12px;color:#aaa;margin-top:4px}
+.chevron{color:#ccc;font-size:22px;flex-shrink:0}
+
+/* ステージ一覧 */
+.top-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+.top-bar h2{font-size:17px;font-weight:700;color:#222}
+.back-btn{background:none;border:none;font-size:17px;font-weight:700;color:#2d3a8c;cursor:pointer;padding:4px 2px;flex-shrink:0}
+.stage-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:16px;max-width:480px;margin:0 auto}
+.stage-cell{background:white;border-radius:16px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.07);border:none;transition:transform .1s}
+.stage-cell:active{transform:scale(.96)}
+.stage-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+.stage-label{font-size:13px;font-weight:600;color:#444}
+
+/* ゲーム */
+.game-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+.game-title{font-size:15px;font-weight:700;color:#333}
+.hint-btn{background:white;border:none;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer}
+.hint-btn:disabled{opacity:.4}
+.grid-wrap{display:flex;justify-content:center;padding:12px 16px}
+#sudoku-grid{display:grid;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);border:3px solid #444;width:min(calc(100vw - 32px),460px);height:min(calc(100vw - 32px),460px)}
+.cell{display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600;background:white;border:0.5px solid #ccc;user-select:none;transition:background .1s}
+.cell.fixed{background:#f2f3f8;font-weight:800;color:#1a2060}
+.cell.selected{background:#c8d8ff!important}
+.cell.error{background:#ffe0e0!important;color:#d32f2f}
+.cell.same-num{background:#e8f0fe}
+.cell.related{background:#f8f8fb}
+.cell.box-right{border-right:2.5px solid #444!important}
+.cell.box-bottom{border-bottom:2.5px solid #444!important}
+.num-picker{display:flex;flex-direction:column;gap:6px;padding:4px 16px}
+.num-row{display:flex;gap:5px}
+.num-btn{flex:1;height:46px;border:none;border-radius:12px;font-weight:800;color:white;cursor:pointer;transition:transform .1s,opacity .1s}
+.num-btn:active{transform:scale(.93);opacity:.8}
+.del-btn{display:block;margin:8px auto 16px;background:#888;color:white;border:none;border-radius:24px;padding:10px 36px;font-size:15px;font-weight:700;cursor:pointer}
+.del-btn:active{opacity:.7}
+
+/* クリア */
+.congrats-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeIn .3s}
+.congrats-overlay.hidden{display:none}
+.congrats-box{background:linear-gradient(135deg,#3a2070,#2d3a8c);border-radius:28px;padding:40px 32px;text-align:center;color:white;max-width:320px;width:90%;animation:popIn .3s}
+.congrats-emoji{font-size:72px;margin-bottom:12px}
+.congrats-text{font-size:26px;font-weight:800;line-height:1.4;margin-bottom:24px}
+.congrats-btn{background:white;color:#2d3a8c;border:none;border-radius:24px;padding:12px 40px;font-size:18px;font-weight:800;cursor:pointer}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.shake{animation:shake .35s ease}
+</style>
+</head>
+<body>
+
+<!-- ホーム -->
+<div id="home-screen" class="screen active">
+  <div class="home-inner">
+    <div class="title-area">
+      <div class="title-emoji">🔢</div>
+      <h1 class="title">ナンプレ</h1>
+      <p class="subtitle">すうじを うめよう！</p>
+    </div>
+    <div class="rules-card">
+      <div class="rules-title">📖 あそびかた</div>
+      <div class="rule-row"><span class="rule-icon">➡️</span><span>よこの ならびに おなじ すうじを いれないでね</span></div>
+      <div class="rule-row"><span class="rule-icon">⬇️</span><span>たての ならびにも おなじ すうじを いれないでね</span></div>
+      <div class="rule-row"><span class="rule-icon">⬜</span><span>しかくの なかにも おなじ すうじを いれないでね</span></div>
+      <div class="rule-row"><span class="rule-icon">💡</span><span>こまったら ヒントを つかってね</span></div>
+    </div>
+    <div class="level-list" id="level-list"></div>
+  </div>
+</div>
+
+<!-- ステージ選択 -->
+<div id="stage-screen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showHome()">‹ もどる</button>
+    <h2 id="stage-title"></h2>
+  </div>
+  <div class="stage-grid" id="stage-grid"></div>
+</div>
+
+<!-- ゲーム -->
+<div id="game-screen" class="screen">
+  <div class="game-header">
+    <button class="back-btn" onclick="showStageList()">‹ もどる</button>
+    <span class="game-title" id="game-title"></span>
+    <button class="hint-btn" id="hint-btn" onclick="useHint()">💡 <span id="hint-count">3</span></button>
+  </div>
+  <div class="grid-wrap"><div id="sudoku-grid"></div></div>
+  <div class="num-picker" id="num-picker"></div>
+  <button class="del-btn" onclick="deleteNumber()">⌫ けす</button>
+  <div id="congrats" class="congrats-overlay hidden">
+    <div class="congrats-box">
+      <div class="congrats-emoji">🎉</div>
+      <div class="congrats-text">やった！<br>クリアしたよ！</div>
+      <button class="congrats-btn" onclick="showStageList()">もどる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const LEVELS=[
+  {name:'かんたん',grid:'4×4',size:4,boxRows:2,boxCols:2,stars:1,color:'#4CAF50'},
+  {name:'ふつう',grid:'6×6',size:6,boxRows:2,boxCols:3,stars:2,color:'#FF9800'},
+  {name:'むずかしい',grid:'9×9',size:9,boxRows:3,boxCols:3,stars:3,color:'#9C27B0'},
+  {name:'とてもむずかしい',grid:'12×12',size:12,boxRows:3,boxCols:4,stars:4,color:'#F44336'},
+  {name:'チャンピオン',grid:'16×16',size:16,boxRows:4,boxCols:4,stars:5,color:'#1A237E'},
+];
+const REMOVALS=[[4,4,4,5,5,5,5,6,6,6],[10,10,10,14,14,14,14,18,18,18],[35,35,35,40,40,40,40,45,45,45],[60,60,60,72,72,72,72,82,82,82],[110,110,110,130,130,130,130,150,150,150]];
+
+class RNG{
+  constructor(s){this.s=(s^0xDEADBEEF)>>>0||1}
+  next(){this.s^=this.s<<13;this.s^=this.s>>>17;this.s^=this.s<<5;return(this.s>>>0)/0x100000000}
+  shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(this.next()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+}
+
+function genPuzzle(li,stage){
+  const{size,boxRows,boxCols}=LEVELS[li];
+  const rng=new RNG(li*10000+stage);
+  let g=Array.from({length:size},(_,r)=>Array.from({length:size},(_,c)=>(c+(r%boxRows)*boxCols+Math.floor(r/boxRows))%size+1));
+  const bands=rng.shuffle([...Array(size/boxRows).keys()]);
+  const ro=bands.flatMap(b=>rng.shuffle([...Array(boxRows).keys()]).map(r=>b*boxRows+r));
+  g=ro.map(r=>g[r]);
+  const stacks=rng.shuffle([...Array(size/boxCols).keys()]);
+  const co=stacks.flatMap(s=>rng.shuffle([...Array(boxCols).keys()]).map(c=>s*boxCols+c));
+  g=g.map(row=>co.map(c=>row[c]));
+  const nm=rng.shuffle([...Array(size).keys()].map(i=>i+1));
+  const sol=g.map(row=>row.map(v=>nm[v-1]));
+  const puz=sol.map(row=>[...row]);
+  const pos=rng.shuffle(Array.from({length:size},(_,r)=>Array.from({length:size},(_,c)=>[r,c])).flat());
+  for(let i=0;i<REMOVALS[li][stage];i++){const[r,c]=pos[i];puz[r][c]=0}
+  return{puzzle:puz,solution:sol};
+}
+
+const getCleared=()=>{try{return new Set(JSON.parse(localStorage.getItem('np_cleared')||'[]'))}catch{return new Set()}};
+const saveCleared=s=>localStorage.setItem('np_cleared',JSON.stringify([...s]));
+const ck=(li,st)=>`${li}_${st}`;
+const clearedCount=li=>[...Array(10).keys()].filter(i=>getCleared().has(ck(li,i))).length;
+const isUnlocked=li=>li===0||clearedCount(li-1)>=10;
+
+// 音
+const snd=(()=>{
+  let ctx=null,bgT=null,bgI=0;
+  const notes=[261.63,329.63,392,523.25,392,329.63];
+  const gc=()=>{if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();return ctx};
+  const tone=(f,d,v=0.3,dl=0)=>{try{const c=gc(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;o.type='sine';const t=c.currentTime+dl;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.01);g.gain.linearRampToValueAtTime(0,t+d);o.start(t);o.stop(t+d+0.05)}catch(e){}};
+  return{
+    wrong(){tone(160,.12,.4);tone(120,.2,.4,.1)},
+    clear(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,.25,.4,i*.15))},
+    startBg(){if(bgT)return;bgT=setInterval(()=>tone(notes[bgI++%notes.length],.7,.06),900)},
+    stopBg(){clearInterval(bgT);bgT=null;bgI=0},
+  };
+})();
+
+let S={li:0,st:0,puzzle:[],solution:[],grid:[],fixed:[],sel:null,errors:new Set(),hints:3};
+
+const $=id=>document.getElementById(id);
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
+function showHome(){snd.stopBg();showScreen('home-screen');buildHome()}
+function showStageList(){snd.stopBg();$('congrats').classList.add('hidden');showScreen('stage-screen');buildStageList(S.li)}
+
+function buildHome(){
+  const el=$('level-list');el.innerHTML='';
+  LEVELS.forEach((lv,i)=>{
+    const ul=isUnlocked(i),cnt=clearedCount(i),stars='⭐'.repeat(lv.stars);
+    const btn=document.createElement('button');
+    btn.className='level-card'+(ul?'':' locked');
+    if(ul)btn.onclick=()=>{S.li=i;showStageList()};
+    btn.innerHTML=`
+      <div class="level-icon" style="background:${ul?lv.color:'#999'}">${ul?'⭐':'🔒'}</div>
+      <div class="level-info">
+        <div class="level-name">${lv.name}</div>
+        <div class="level-grid">${lv.grid}</div>
+        <div class="level-stars">${stars}</div>
+        ${ul?`<div class="prog-bg"><div class="prog-fill" style="width:${cnt*10}%;background:${lv.color}"></div></div><div class="prog-text">${cnt}/10 クリア</div>`:`<div class="lock-text">まえをぜんぶクリアしよう！</div>`}
+      </div>
+      ${ul?'<span class="chevron">›</span>':''}`;
+    el.appendChild(btn);
+  });
+}
+
+function buildStageList(li){
+  const lv=LEVELS[li],cl=getCleared();
+  $('stage-title').textContent=`${lv.name} ${lv.grid}`;
+  const g=$('stage-grid');g.innerHTML='';
+  for(let i=0;i<10;i++){
+    const ok=cl.has(ck(li,i));
+    const b=document.createElement('button');
+    b.className='stage-cell';
+    b.innerHTML=`<div class="stage-circle" style="background:${ok?lv.color:lv.color+'25'};color:${ok?'white':lv.color}">${ok?'✓':i+1}</div><div class="stage-label">ステージ ${i+1}</div>`;
+    b.onclick=()=>startGame(li,i);
+    g.appendChild(b);
+  }
+}
+
+function startGame(li,st){
+  const lv=LEVELS[li];
+  const{puzzle,solution}=genPuzzle(li,st);
+  S={li,st,puzzle,solution,grid:puzzle.map(r=>[...r]),fixed:puzzle.map(r=>r.map(v=>v!==0)),sel:null,errors:new Set(),hints:3};
+  $('game-title').textContent=`${lv.name} ステージ ${st+1}`;
+  $('hint-count').textContent=3;
+  $('hint-btn').disabled=false;
+  $('congrats').classList.add('hidden');
+  buildGrid();buildPicker();
+  showScreen('game-screen');
+  snd.startBg();
+}
+
+function buildGrid(){
+  const{size,boxRows,boxCols}=LEVELS[S.li];
+  const el=$('sudoku-grid');
+  el.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  el.style.gridTemplateRows=`repeat(${size},1fr)`;
+  el.innerHTML='';
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++){
+    const d=document.createElement('div');
+    d.className='cell';d.dataset.r=r;d.dataset.c=c;
+    if((c+1)%boxCols===0&&c<size-1)d.classList.add('box-right');
+    if((r+1)%boxRows===0&&r<size-1)d.classList.add('box-bottom');
+    d.onclick=()=>selCell(r,c);
+    el.appendChild(d);
+  }
+  renderGrid();
+}
+
+function renderGrid(){
+  const{size,boxRows,boxCols}=LEVELS[S.li];
+  const fs=size<=4?22:size<=6?19:size<=9?15:size<=12?12:10;
+  document.querySelectorAll('.cell').forEach(d=>{
+    const r=+d.dataset.r,c=+d.dataset.c,v=S.grid[r][c];
+    const sel=S.sel,selN=sel?S.grid[sel[0]][sel[1]]:0;
+    const isSel=sel&&sel[0]===r&&sel[1]===c;
+    const isErr=S.errors.has(`${r}_${c}`);
+    const isSame=selN>0&&v===selN&&!isSel;
+    const isRel=sel&&!isSel&&(sel[0]===r||sel[1]===c||(Math.floor(r/boxRows)===Math.floor(sel[0]/boxRows)&&Math.floor(c/boxCols)===Math.floor(sel[1]/boxCols)));
+    d.className='cell';
+    if((c+1)%boxCols===0&&c<size-1)d.classList.add('box-right');
+    if((r+1)%boxRows===0&&r<size-1)d.classList.add('box-bottom');
+    if(S.fixed[r][c])d.classList.add('fixed');
+    if(isSel)d.classList.add('selected');
+    else if(isErr)d.classList.add('error');
+    else if(isSame)d.classList.add('same-num');
+    else if(isRel)d.classList.add('related');
+    d.style.fontSize=fs+'px';
+    d.textContent=v>0?v:'';
+  });
+}
+
+function selCell(r,c){S.sel=[r,c];renderGrid()}
+
+function buildPicker(){
+  const{size,color}=LEVELS[S.li];
+  const el=$('num-picker');el.innerHTML='';
+  const nums=[...Array(size).keys()].map(i=>i+1);
+  const rows=size>9?[nums.slice(0,Math.ceil(size/2)),nums.slice(Math.ceil(size/2))]:[nums];
+  rows.forEach(rn=>{
+    const rd=document.createElement('div');rd.className='num-row';
+    rn.forEach(n=>{
+      const b=document.createElement('button');b.className='num-btn';
+      b.textContent=n;b.style.background=color;
+      b.style.fontSize=(size<=9?20:size<=12?16:13)+'px';
+      b.onclick=()=>enterNum(n);rd.appendChild(b);
+    });
+    el.appendChild(rd);
+  });
+}
+
+function enterNum(n){
+  if(!S.sel)return;
+  const[r,c]=S.sel;if(S.fixed[r][c])return;
+  const k=`${r}_${c}`;S.grid[r][c]=n;
+  if(n!==S.solution[r][c]){
+    S.errors.add(k);snd.wrong();
+    const g=$('sudoku-grid');g.classList.remove('shake');void g.offsetWidth;g.classList.add('shake');
+  }else{S.errors.delete(k);checkDone()}
+  renderGrid();
+}
+
+function deleteNumber(){
+  if(!S.sel)return;const[r,c]=S.sel;if(S.fixed[r][c])return;
+  S.grid[r][c]=0;S.errors.delete(`${r}_${c}`);renderGrid();
+}
+
+function useHint(){
+  if(S.hints<=0)return;
+  const{size}=LEVELS[S.li];
+  const emp=[];
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++)
+    if(!S.fixed[r][c]&&S.grid[r][c]!==S.solution[r][c])emp.push([r,c]);
+  if(!emp.length)return;
+  const[r,c]=emp[Math.floor(Math.random()*emp.length)];
+  S.hints--;S.sel=[r,c];S.grid[r][c]=S.solution[r][c];S.errors.delete(`${r}_${c}`);
+  $('hint-count').textContent=S.hints;
+  $('hint-btn').disabled=S.hints===0;
+  renderGrid();checkDone();
+}
+
+function checkDone(){
+  const{size}=LEVELS[S.li];
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++)if(S.grid[r][c]!==S.solution[r][c])return;
+  setTimeout(()=>{
+    snd.stopBg();snd.clear();
+    const cl=getCleared();cl.add(ck(S.li,S.st));saveCleared(cl);
+    $('congrats').classList.remove('hidden');
+  },300);
+}
+
+buildHome();
+</script>
+</body>
+</html>
