@@ -305,10 +305,9 @@ function enterNum(n){
   if(!S.sel)return;
   const[r,c]=S.sel;if(S.fixed[r][c])return;
   const k=`${r}_${c}`;S.grid[r][c]=n;
-  if(n!==S.solution[r][c]){
-    S.errors.add(k);snd.wrong();
-  }else{S.errors.delete(k);checkDone()}
+  S.errors.delete(k);
   renderGrid();
+  checkDone();
 }
 
 function deleteNumber(){
